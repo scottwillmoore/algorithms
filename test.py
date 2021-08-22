@@ -1,5 +1,6 @@
 from itertools import chain, product, tee
 
+from knuth_morris_pratt_modified import get_matches as knuth_morris_pratt_modified
 from knuth_morris_pratt import get_matches as knuth_morris_pratt
 from shift_or import get_matches as shift_or
 from z import get_matches as z
@@ -10,7 +11,7 @@ ALPHABET_STOP = 101
 WORD_START = 1
 WORD_STOP = 6
 
-TESTS = [knuth_morris_pratt, shift_or, z]
+TESTS = [knuth_morris_pratt, knuth_morris_pratt_modified, shift_or, z]
 
 
 def get_matches(pattern, text):
