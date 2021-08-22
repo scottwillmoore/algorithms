@@ -69,10 +69,3 @@ def get_matches(pattern, text):
         i += 1
 
     return matches
-
-
-def test_get_matches():
-    assert get_matches("aba", "bbabaxababay") == [2, 6, 8]
-    assert get_matches("geek", "geeks for geeks") == [0, 10]
-    assert get_matches("abxabxxx", "abxababxabxxx") == [5]
-    assert get_matches("ababcabab", "ababdabacdababcabab") == [10]
