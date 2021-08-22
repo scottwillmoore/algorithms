@@ -9,12 +9,22 @@ def get_sp_values(s):
     z = get_z_values(s)
 
     l = n - 1
-    while l >= 0:
+    while l > 0:
         r = l + z[l] - 1
         sp[r] = z[l]
         l -= 1
 
     return sp
+
+
+def test_get_sp_values():
+    assert get_sp_values("aba") == [0, 0, 1]
+    assert get_sp_values("abxabxxx") == [0, 0, 0, 0, 0, 3, 0, 0]
+    assert get_sp_values("bbccaebbcabd") == [0, 1, 0, 0, 0, 0, 0, 1, 3, 0, 1, 0]
+    assert get_sp_values("aabcaabxaay") == [0, 1, 0, 0, 0, 1, 3, 0, 0, 2, 0]
+    assert get_sp_values("abcd abd ") == [0, 0, 0, 0, 0, 0, 2, 0, 0]
+    assert get_sp_values("ab ac ab abc ") == [0, 0, 0, 1, 0, 0, 0, 0, 0, 4, 2, 0, 0]
+    assert get_sp_values("abacababa ") == [0, 0, 1, 0, 0, 0, 3, 0, 3, 0]
 
 
 def get_matches(pattern, text):
@@ -25,23 +35,28 @@ def get_matches(pattern, text):
 
     matches = []
 
+    i = 0
     j = 0
-    while j + (m - 1) < n:
-        i = 0
-        while i < m and pattern[i] == text[i + j]:
+    while j < n:
+        if pattern[i] == text[j]:
             i += 1
+            j += 1
 
-        if i == m:
-            matches.append(j)
-            j += m - 1
+            if i == m:
+                matches.append(j - i)
+                i = sp[i - 1]
+
         else:
-            j += i - (sp[i] - 1)
+            if i == 0:
+                j += 1
+            else:
+                i = sp[i - 1]
 
     return matches
 
 
-if __name__ == "__main__":
-    print("The Knuth-Morris-Pratt algorithm")
-
-    print(get_matches("aba", "bbabaxababay"))
-    print(get_matches("geek", "geeks for geeks"))
+def test_get_matches():
+    assert get_matches("aba", "bbabaxababay") == [2, 6, 8]
+    assert get_matches("geek", "geeks for geeks") == [0, 10]
+    assert get_matches("abxabxxx", "abxababxabxxx") == [5]
+    assert get_matches("ababcabab", "ababdabacdababcabab") == [10]

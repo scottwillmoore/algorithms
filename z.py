@@ -39,9 +39,13 @@ def get_z_values(s):
 
 
 def test_get_z_values():
+    assert get_z_values("aba") == [0, 0, 1]
     assert get_z_values("abxabxxx") == [0, 0, 0, 3, 0, 0, 0, 0]
     assert get_z_values("bbccaebbcabd") == [0, 1, 0, 0, 0, 0, 3, 1, 0, 0, 1, 0]
     assert get_z_values("aabcaabxaay") == [0, 1, 0, 0, 3, 1, 0, 0, 2, 1, 0]
+    assert get_z_values("abcd abd ") == [0, 0, 0, 0, 0, 2, 0, 0, 0]
+    assert get_z_values("ab ac ab abc ") == [0, 0, 0, 1, 0, 0, 4, 0, 0, 2, 0, 0, 0]
+    assert get_z_values("abacababa ") == [0, 0, 1, 0, 3, 0, 3, 0, 1, 0]
 
 
 DELIMITER = "\x00"
@@ -70,3 +74,5 @@ def get_matches(pattern, text):
 def test_get_matches():
     assert get_matches("aba", "bbabaxababay") == [2, 6, 8]
     assert get_matches("geek", "geeks for geeks") == [0, 10]
+    assert get_matches("abxabxxx", "abxababxabxxx") == [5]
+    assert get_matches("ababcabab", "ababdabacdababcabab") == [10]
