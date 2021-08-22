@@ -20,11 +20,8 @@ def get_z_values(s):
             z[i] = j
 
         else:
-            if i + z[i - l] < r:
-                z[i] = z[i - l]
-
-            else:
-                j = z[i - l]
+            if i + z[i - l] > r:
+                j = r - i + 1
                 while i + j < n and s[j] == s[i + j]:
                     j += 1
 
@@ -33,9 +30,18 @@ def get_z_values(s):
 
                 z[i] = j
 
+            else:
+                z[i] = z[i - l]
+
         i += 1
 
     return z
+
+
+def test_get_z_values():
+    assert get_z_values("abxabxxx") == [0, 0, 0, 3, 0, 0, 0, 0]
+    assert get_z_values("bbccaebbcabd") == [0, 1, 0, 0, 0, 0, 3, 1, 0, 0, 1, 0]
+    assert get_z_values("aabcaabxaay") == [0, 1, 0, 0, 3, 1, 0, 0, 2, 1, 0]
 
 
 DELIMITER = "\x00"
@@ -61,8 +67,6 @@ def get_matches(pattern, text):
     return matches
 
 
-if __name__ == "__main__":
-    print("The Z algorithm")
-
-    print(get_matches("aba", "bbabaxababay"))
-    print(get_matches("geek", "geeks for geeks"))
+def test_get_matches():
+    assert get_matches("aba", "bbabaxababay") == [2, 6, 8]
+    assert get_matches("geek", "geeks for geeks") == [0, 10]
