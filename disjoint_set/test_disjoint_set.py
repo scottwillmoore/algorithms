@@ -14,6 +14,7 @@ def DisjointSet(request):
     return request.param
 
 
+# https://www.cs.princeton.edu/~wayne/kleinberg-tardos/pdf/UnionFind.pdf
 def test_princeton_university(DisjointSet):
     disjoint_set = DisjointSet(10)
 
