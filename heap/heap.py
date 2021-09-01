@@ -3,11 +3,15 @@ from abc import ABC, abstractmethod
 
 class Heap(ABC):
     @abstractmethod
-    def __init__(self):
+    def decrease_key(self, i):
         pass
 
     @abstractmethod
-    def insert(self):
+    def delete(self, i):
+        pass
+
+    @abstractmethod
+    def extract_min(self):
         pass
 
     @abstractmethod
@@ -15,5 +19,9 @@ class Heap(ABC):
         pass
 
     @abstractmethod
-    def extract_min(self):
+    def insert(self, x):
+        pass
+
+    @abstractmethod
+    def merge(self, other):
         pass
