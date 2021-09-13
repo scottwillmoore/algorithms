@@ -1,13 +1,22 @@
+# Heap (data structure)
+# [1] https://en.wikipedia.org/wiki/Heap_(data_structure)
+
 from abc import ABC, abstractmethod
+
+
+class Node(ABC):
+    def __init__(self, key, value=None):
+        self.key = key
+        self.value = value
 
 
 class Heap(ABC):
     @abstractmethod
-    def decrease_key(self, i):
+    def decrease_key(self, node, key):
         pass
 
     @abstractmethod
-    def delete(self, i):
+    def delete(self, node):
         pass
 
     @abstractmethod
@@ -19,7 +28,7 @@ class Heap(ABC):
         pass
 
     @abstractmethod
-    def insert(self, x):
+    def insert(self, node):
         pass
 
     @abstractmethod
