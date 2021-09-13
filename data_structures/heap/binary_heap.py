@@ -1,6 +1,12 @@
 from heap import Heap
 
 
+class Node:
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+
 class BinaryHeap(Heap):
     def __init__(self, array):
         self.array = array
