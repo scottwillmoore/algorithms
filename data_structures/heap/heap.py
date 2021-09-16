@@ -1,36 +1,42 @@
-# Heap (data structure)
-# [1] https://en.wikipedia.org/wiki/Heap_(data_structure)
-
-from abc import ABC, abstractmethod
-
-
-class Node(ABC):
-    def __init__(self, key, value=None):
-        self.key = key
-        self.value = value
+from __future__ import annotations
+from collections.abc import Collection
+from typing import Callable, Protocol, TypeVar
 
 
-class Heap(ABC):
-    @abstractmethod
-    def decrease_key(self, node, key):
+Element = TypeVar("Element")
+
+
+Comparator = Callable[[Element, Element], bool]
+
+
+MIN_COMPARATOR: Comparator = lambda x, y: x < y
+MAX_COMPARATOR: Comparator = lambda x, y: x < y
+
+
+class Node(Protocol[Element]):
+    element: Element
+
+
+# FEATURE: At the moment you cannot define associated types in a Protocol...
+# https://github.com/python/typing/issues/548
+# https://github.com/python/mypy/issues/7790
+class Heap(Collection[Element], Protocol[Element]):
+    comparator: Comparator[Element]
+
+    def decrease_node(self, node: Node[Element]) -> None:
         pass
 
-    @abstractmethod
-    def delete(self, node):
+    def delete_node(self, node: Node[Element]) -> None:
         pass
 
-    @abstractmethod
-    def extract_min(self):
+    def merge(self, heap: Heap[Element]) -> None:
         pass
 
-    @abstractmethod
-    def find_min(self):
+    def peek_node(self) -> Node[Element]:
         pass
 
-    @abstractmethod
-    def insert(self, node):
+    def pop_node(self) -> Node[Element]:
         pass
 
-    @abstractmethod
-    def merge(self, other):
+    def push_node(self, node: Node[Element]) -> None:
         pass

@@ -1,8 +1,11 @@
 from __future__ import annotations
-from typing import Collection, Protocol, TypeVar
+from typing import Callable, Collection, Protocol, TypeVar
 
 
 _Element = TypeVar("_Element")
+
+
+_Comparator = Callable[[_Element, _Element], bool]
 
 
 class PriorityQueue(Collection[_Element], Protocol[_Element]):

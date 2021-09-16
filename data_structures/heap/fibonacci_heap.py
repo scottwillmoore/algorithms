@@ -1,41 +1,97 @@
 from __future__ import annotations
+from collections.abc import Iterator
 from math import log2
 from random import Random
-from typing import Callable, Generic, Iterator, Optional, TypeVar
+from typing import Any, Generic, Optional
 
+from heap import MIN_COMPARATOR, Comparator, Element, Node
 from priority_queue import PriorityQueue
 
 
-_Element = TypeVar("_Element")
-
-
-class FibonacciNode(Generic[_Element]):
-    """
-    Concrete data structure
-    Fibonacci node
-    """
-
-    element: _Element
-    left: FibonacciNode[_Element]
-    right: FibonacciNode[_Element]
+class FibonacciNode(Generic[Element]):
+    element: Element
+    left: FibonacciNode[Element]
+    right: FibonacciNode[Element]
 
     degree: int = 0
     mark: bool = False
-    parent: Optional[FibonacciNode[_Element]] = None
-    child: Optional[FibonacciNode[_Element]] = None
+    parent: Optional[FibonacciNode[Element]] = None
+    child: Optional[FibonacciNode[Element]] = None
 
-    def __init__(self, element: _Element) -> None:
+    def __init__(self, element: Element):
         self.element = element
         self.left = self
         self.right = self
 
     def __repr__(self) -> str:
-        return f"(element={self.element}, degree={self.degree}, mark={self.mark}, left={self.left.element}, right={self.right.element})"
+        return f"{self.__class__.__name__}({self.element})"
 
     def __str__(self) -> str:
-        return self.__repr__()
+        return f"{self.__class__.__name__}({self.element})"
 
-    def concatenate(self, other: FibonacciNode[_Element]) -> None:
+    def _cascading_cut(self, head: FibonacciNode[Element]):
+        parent = self.parent
+        if parent:
+            if self.mark:
+                self._cut(parent, head)
+                parent._cascading_cut(head)
+            else:
+                self.mark = True
+
+    def _cut(self, parent: FibonacciNode[Element], head: FibonacciNode[Element]):
+        parent.degree -= 1
+
+        sibling = self.right
+        has_sibling = self is not sibling
+
+        if has_sibling:
+            parent.child = sibling
+        else:
+            parent.child = None
+
+        self.mark = False
+        self.parent = None
+
+        self._remove()
+        head._merge(self)
+
+    def _iter_elements(self) -> Iterator[Element]:
+        for node in self._iter_nodes():
+            yield node.element
+
+    def _iter_nodes(self) -> Iterator[FibonacciNode[Element]]:
+        for node in self._iter_siblings():
+            yield node
+
+            if node.child:
+                yield from node.child._iter_nodes()
+
+    def _iter_siblings(self) -> Iterator[FibonacciNode[Element]]:
+        stop = self.left
+
+        while True:
+            next = self.right
+
+            yield self
+
+            if self is stop:
+                break
+
+            self = next
+
+    def _link(self, parent: FibonacciNode[Element]):
+        self._remove()
+
+        self.mark = False
+
+        if parent.child:
+            parent.child._merge(self)
+        else:
+            parent.child = self
+
+        self.parent = parent
+
+    def _merge(self, other: FibonacciNode[Element]):
         self_end = self.left
         other_end = other.left
 
@@ -45,122 +101,117 @@ class FibonacciNode(Generic[_Element]):
         self.left = other_end
         other.left = self_end
 
-    def extract(self) -> None:
+    def _remove(self):
         self.left.right = self.right
         self.right.left = self.left
 
         self.left = self
         self.right = self
 
-    # def show(self, depth=0, show_siblings=True) -> None:
-    #     indent = ">   " * depth
 
-    #     print(f"{indent}{self}")
-
-    #     if self.child:
-    #         self.child.show(depth=depth + 1)
-
-    #     if show_siblings:
-    #         next = self.right
-    #         while next is not self:
-    #             next.show(depth=depth, show_siblings=False)
-    #             next = next.right
+# NOTE: How to enforce the implementation of a Protocol...
+# https://github.com/python/mypy/issues/8235
+_node: Node[Any] = FibonacciNode[Any](None)
 
 
-_Comparator = Callable[[_Element, _Element], bool]
-
-
-_MIN_COMPARATOR: _Comparator = lambda x, y: x < y
-
-
-class FibonacciHeap(Generic[_Element]):
+class FibonacciHeap(Generic[Element]):
     """
     Concrete data structure
     Fibonacci heap
     https://en.wikipedia.org/wiki/Fibonacci_heap
     """
 
+    # BUG: Cannot assign to a field of type Callable...
     # https://github.com/python/mypy/issues/708
-    # comparator: _Comparator[Element]
+    # comparator: Comparator[Element]
 
-    head: Optional[FibonacciNode[_Element]] = None
+    head: Optional[FibonacciNode[Element]] = None
     size: int = 0
 
-    def __contains__(self, element: object) -> bool:
-        pass
+    def __contains__(self, object: object) -> bool:
+        for element in self:
+            if element is object:
+                return True
 
-    def __iter__(self) -> Iterator[_Element]:
-        pass
+        return False
 
-    def __init__(self, *, comparator: _Comparator[_Element] = _MIN_COMPARATOR) -> None:
+    def __iter__(self) -> Iterator[Element]:
+        if not self.head:
+            return
+
+        yield from self.head._iter_elements()
+
+    def __init__(self, *, comparator: Comparator[Element] = MIN_COMPARATOR):
         self.comparator = comparator
 
     def __len__(self) -> int:
         return self.size
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(head = {self.head}, size = {self.size})"
+        return f"{self.__class__.__name__}({self.head}, {self.size})"
 
     def __str__(self) -> str:
         return self.__repr__()
 
-    def consolidate(self) -> None:
+    def _consolidate(self):
         if not self.head:
             return
 
         max_degree = int(log2(self.size))
-        array: list[Optional[FibonacciNode[_Element]]] = [None] * (max_degree + 1)
+        array: list[Optional[FibonacciNode[Element]]] = [None] * (max_degree + 1)
 
-        current = self.head
-        stop = self.head.left
-
-        while True:
-            next = current.right
-
-            x = current
-            x.parent = None
+        for node in self.head._iter_siblings():
+            node.parent = None
 
             while True:
-                y = array[x.degree]
+                equal_node = array[node.degree]
 
-                if not y:
+                if not equal_node:
                     break
 
-                if not self.comparator(x.element, y.element):
-                    x, y = y, x
+                if not self.comparator(node.element, equal_node.element):
+                    node, equal_node = equal_node, node
 
-                y.extract()
-                y.mark = False
-                y.parent = x
+                equal_node._link(node)
 
-                if x.child:
-                    x.child.concatenate(y)
-                else:
-                    x.child = y
+                array[node.degree] = None
 
-                array[x.degree] = None
-                x.degree += 1
+                node.degree += 1
 
-            array[x.degree] = x
+            array[node.degree] = node
 
-            if not self.comparator(self.head.element, x.element):
-                self.head = x
+            if not self.comparator(self.head.element, node.element):
+                self.head = node
 
-            if current is stop:
-                break
+    def decrease_node(self, node: FibonacciNode[Element], element: Element):
+        assert not self.comparator(node.element, element)
 
-            current = next
+        if not self.head:
+            return
 
-    def decrease_node(self, node: FibonacciNode[_Element]) -> None:
-        pass
+        node.element = element
 
-    def delete_node(self, node: FibonacciNode[_Element]) -> None:
-        pass
+        parent = node.parent
+        if parent and self.comparator(node.element, parent.element):
+            node._cut(parent, self.head)
+            parent._cascading_cut(self.head)
 
-    def find_node(self, element: _Element) -> Optional[FibonacciNode[_Element]]:
-        pass
+        if self.comparator(node.element, self.head.element):
+            self.head = node
 
-    def merge(self, other: FibonacciHeap[_Element]) -> None:
+    def delete_node(self, node: FibonacciNode[Element]):
+        if not self.head:
+            return
+
+        parent = node.parent
+        if parent:
+            node._cut(parent, self.head)
+            parent._cascading_cut(self.head)
+
+        self.head = node
+        self.pop()
+
+    def merge(self, other: FibonacciHeap[Element]):
         if not self.head:
             self.head = other.head
             self.size = other.size
@@ -169,7 +220,7 @@ class FibonacciHeap(Generic[_Element]):
             if not other.head:
                 return
 
-            self.head.concatenate(other.head)
+            self.head._merge(other.head)
 
             if not self.comparator(self.head.element, other.head.element):
                 self.head = other.head
@@ -179,7 +230,7 @@ class FibonacciHeap(Generic[_Element]):
         other.head = None
         other.size = 0
 
-    def peek(self) -> Optional[_Element]:
+    def peek(self) -> Optional[Element]:
         node = self.peek_node()
 
         if not node:
@@ -187,13 +238,13 @@ class FibonacciHeap(Generic[_Element]):
 
         return node.element
 
-    def peek_node(self) -> Optional[FibonacciNode[_Element]]:
+    def peek_node(self) -> Optional[FibonacciNode[Element]]:
         if not self.head:
             return None
 
         return self.head
 
-    def pop(self) -> Optional[_Element]:
+    def pop(self) -> Optional[Element]:
         node = self.pop_node()
 
         if not node:
@@ -201,23 +252,23 @@ class FibonacciHeap(Generic[_Element]):
 
         return node.element
 
-    def pop_node(self) -> Optional[FibonacciNode[_Element]]:
+    def pop_node(self) -> Optional[FibonacciNode[Element]]:
         node = self.head
 
         if not node:
             return None
 
         if node.child:
-            node.concatenate(node.child)
+            node._merge(node.child)
 
         sibling = node.right
         has_sibling = node is not sibling
 
-        node.extract()
+        node._remove()
 
         if has_sibling:
             self.head = sibling
-            self.consolidate()
+            self._consolidate()
         else:
             self.head = None
 
@@ -225,12 +276,12 @@ class FibonacciHeap(Generic[_Element]):
 
         return node
 
-    def push(self, element: _Element) -> None:
+    def push(self, element: Element):
         node = FibonacciNode(element)
 
         self.push_node_unsafe(node)
 
-    def push_node(self, node: FibonacciNode[_Element]) -> None:
+    def push_node(self, node: FibonacciNode[Element]):
         node.degree = 0
         node.mark = False
         node.parent = None
@@ -238,9 +289,9 @@ class FibonacciHeap(Generic[_Element]):
 
         self.push_node_unsafe(node)
 
-    def push_node_unsafe(self, node: FibonacciNode[_Element]) -> None:
+    def push_node_unsafe(self, node: FibonacciNode[Element]):
         if self.head:
-            self.head.concatenate(node)
+            self.head._merge(node)
 
             if not self.comparator(self.head.element, node.element):
                 self.head = node
@@ -251,15 +302,117 @@ class FibonacciHeap(Generic[_Element]):
         self.size += 1
 
 
+# EXAMPLE: How to enforce the implementation of a Protocol...
 # https://github.com/python/mypy/issues/8235
-_priority_queue: PriorityQueue = FibonacciHeap()
+# FEATURE: However, at the moment you cannot define associated types in a Protocol...
+# https://github.com/python/typing/issues/548
+# https://github.com/python/mypy/issues/7790
+# _heap: Heap[Any] = FibonacciHeap[Any]()
+
+# EXAMPLE: How to enforce the implementation of a Protocol...
+# https://github.com/python/mypy/issues/8235
+_priority_queue: PriorityQueue[Any] = FibonacciHeap[Any]()
 
 
-_LARGE_SIZE = 10
 _SMALL_SIZE = 10
-
+_LARGE_SIZE = 1000
 
 _RANDOM_SEED = 42
+
+
+def test_bool_empty():
+    heap = FibonacciHeap[int]()
+
+    if heap:
+        assert False
+
+
+def test_bool_one():
+    heap = FibonacciHeap[int]()
+
+    heap.push(1)
+
+    if not heap:
+        assert False
+
+
+def test_contains_int():
+    heap = FibonacciHeap[int]()
+
+    heap.push(1)
+
+    assert 1 in heap
+
+
+def test_contains_list():
+    heap = FibonacciHeap[list]()
+
+    list_a = [1, 2]
+    list_b = [3, 4]
+    list_c = [5, 6]
+
+    heap.push(list_a)
+    heap.push(list_b)
+
+    assert list_a in heap
+    assert list_b in heap
+    assert list_c not in heap
+
+
+def test_decrease_node():
+    heap = FibonacciHeap[int]()
+
+    node_a = FibonacciNode(5)
+    node_b = FibonacciNode(6)
+    node_c = FibonacciNode(7)
+    node_d = FibonacciNode(8)
+    node_e = FibonacciNode(9)
+
+    heap.push_node(node_a)
+    heap.push_node(node_b)
+    heap.push_node(node_c)
+    heap.push_node(node_d)
+    heap.push_node(node_e)
+
+    heap._consolidate()
+
+    heap.decrease_node(node_e, 4)
+
+    assert node_e.element == 4
+    assert heap.peek() == 4
+
+    heap.decrease_node(node_d, 3)
+
+    assert node_d.element == 3
+    assert heap.peek() == 3
+
+
+def test_delete_node():
+    heap = FibonacciHeap[int]()
+
+    node_a = FibonacciNode(5)
+    node_b = FibonacciNode(6)
+    node_c = FibonacciNode(7)
+    node_d = FibonacciNode(8)
+    node_e = FibonacciNode(9)
+
+    heap.push_node(node_a)
+    heap.push_node(node_b)
+    heap.push_node(node_c)
+    heap.push_node(node_d)
+    heap.push_node(node_e)
+
+    heap._consolidate()
+
+    assert heap.size == 5
+
+    heap.delete_node(node_c)
+    assert heap.size == 4
+    assert node_c.element not in heap
+
+    heap.delete_node(node_a)
+    assert heap.size == 3
+    assert node_a.element not in heap
 
 
 def test_merge_empty():
@@ -398,7 +551,6 @@ def test_pop_one_with_two_children():
     heap.head = node
     heap.size = 3
 
-    heap.head.show()
     assert heap.pop() == 1
     assert heap.head is node_child_a
     assert heap.head.left is node_child_a
